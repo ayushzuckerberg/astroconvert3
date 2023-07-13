@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Celestial Coordinate Converter</title>
+  <script>
+    function radians(degrees) {
+      return degrees * (Math.PI / 180);
+    }
+    function degrees(radians) {
+  return radians * (180 / Math.PI);
+}
+
+function atan2(y, x) {
+  return Math.atan2(y, x);
+}
+
+function asin(x) {
+  return Math.asin(x); 
+}
+
+function sin(x) {
+  return Math.sin(x);
+}
+
+function cos(x) {
+  return Math.cos(x);
+}
+
+function tan(x) {
+  return Math.tan(x);
+}
+
+function pi() {
+  return Math.PI;
+}
+
+function equatorial_to_galactic(ra, dec) {
+  var ra_rad = radians(ra);
+  var dec_rad = radians(dec);
+  var inclination = radians(27.1284);
+
+  var l_rad = atan2(sin(ra_rad - pi()), cos(dec_rad) * sin(ra_rad - pi() / 2));
+  var b_rad = asin(sin(dec_rad) * sin(pi() / 2 - inclination) + cos(dec_rad) * cos(pi() / 2 - inclination) * sin(ra_rad - pi() / 2));
+
+  var l = degrees(l_rad);
+  var b = degrees(b_rad);
+
+  return [l, b];
+}
+
+function galactic_to_equatorial(l, b) {
+  var l_rad = radians(l);
+  var b_rad = radians(b);
+  var inclination = radians(27.1284);
+
+  var ra_rad = atan2(sin(l_rad - pi()), cos(b_rad) * sin(l_rad - pi() / 2));
+  var dec_rad = asin(sin(b_rad) * sin(pi() / 2 - inclination) + cos(b_rad) * cos(pi() / 2 - inclination) * sin(l_rad - pi() / 2));
+
+  var ra = degrees(ra_rad);
+  var dec = degrees(dec_rad);
+
+  return [ra, dec];
+}
+
+function equatorial_to_ecliptic(ra, dec) {
+  var ra_rad = radians(ra);
+  var dec_rad = radians(dec);
+
+  var obliquity = radians(23.439291);
+
+  var lon_rad = atan2(sin(ra_rad) * cos(obliquity) + tan(dec_rad) * sin(obliquity), cos(ra_rad));
+  var lat_rad = asin(sin(dec_rad) * cos(obliquity) - cos(dec_rad) * sin(obliquity) * sin(ra_rad));
+
+  var lon = degrees(lon_rad);
+  var lat = degrees(lat_rad);
+
+  return [lon, lat];
+}
+
+function ecliptic_to_equatorial(lon, lat) {
+  var lon_rad = radians(lon);
+  var lat_rad = radians(lat);
+
+  var obliquity = radians(23.439291);
+
+  var ra_rad = atan2(sin(lon_rad) * cos(obliquity) - tan(lat_rad) * sin(obliquity), cos(lon_rad));
+  var dec_rad = asin(sin(lat_rad) * cos(obliquity) + cos(lat_rad) * sin(obliquity) * sin(lon_rad));
+
+  var ra = degrees(ra_rad);
+  var dec = degrees(dec_rad);
+
+  return [ra, dec];
+}
+
+function galactic_to_ecliptic(l, b) {
+  var result_equatorial = galactic_to_equatorial(l, b);
+  var result_ecliptic = equatorial_to_ecliptic(result_equatorial[0], result_equatorial[1]);
+  return result_ecliptic;
+}
+
+function ecliptic_to_galactic(lon, lat) {
+  var result_equatorial = ecliptic_to_equatorial(lon, lat);
+  var result_galactic = equatorial_to_galactic(result_equatorial[0], result_equatorial[1]);
+  return result_galactic;
+}
+
+function equatorial_to_horizontal(ra, dec, lat, lon, time) {
+  var ra_rad = radians(ra);
+  var dec_rad = radians(dec);
+  var lat_rad = radians(lat);
+  var lon_rad = radians(lon);
+  var sidereal_time_rad = radians(15 * time);
+
+  var ha_rad = sidereal_time_rad - lon_rad - ra_rad;
+  var alt_rad = asin(sin(dec_rad) * sin(lat_rad) + cos(dec_rad) * cos(lat_rad) * cos(ha_rad));
+  var az_rad = atan2(-sin(ha_rad), cos(ha_rad) * sin(lat_rad) - tan(dec_rad) * cos(lat_rad));
+
+  var alt = degrees(alt_rad);
+  var az = degrees(az_rad);
+
+  return [alt, az];
+}
+
+function horizontal_to_equatorial(alt, az, lat, lon, time) {
+  var alt_rad = radians(alt);
+  var az_rad = radians(az);
+  var lat_rad = radians(lat);
+  var lon_rad = radians(lon);
+  var sidereal_time_rad = radians(15 * time);
+
+  var ha_rad = atan2(-sin(az_rad), cos(az_rad) * sin(lat_rad) + tan(alt_rad) * cos(lat_rad));
+  var dec_rad = asin(sin(alt_rad) * sin(lat_rad) - cos(alt_rad) * cos(lat_rad) * cos(ha_rad));
+  var ra_rad = sidereal_time_rad - lon_rad - ha_rad;
+
+  var ra = degrees(ra_rad);
+  var dec = degrees(dec_rad);
+
+  return [ra, dec];
+}
+
+function horizontal_to_galactic(alt, az, lat, lon, time) {
+  var result_equatorial = horizontal_to_equatorial(alt, az, lat, lon, time);
+  var result_galactic = equatorial_to_galactic(result_equatorial[0], result_equatorial[1]);
+  return result_galactic;
+}
+
+function galactic_to_horizontal(l, b, lat, lon, time) {
+  var result_equatorial = galactic_to_equatorial(l, b);
+  var result_horizontal = equatorial_to_horizontal(result_equatorial[0], result_equatorial[1], lat, lon, time);
+  return result_horizontal;
+}
+
+function ecliptic_to_horizontal(lon, lat, lat_obs, lon_obs, time) {
+  var result_equatorial = ecliptic_to_equatorial(lon, lat);
+  var result_horizontal = equatorial_to_horizontal(result_equatorial[0], result_equatorial[1], lat_obs, lon_obs, time);
+  return result_horizontal;
+}
+
+function horizontal_to_ecliptic(alt, az, lat_obs, lon_obs, time) {
+  var result_equatorial = horizontal_to_equatorial(alt, az, lat_obs, lon_obs, time);
+  var result_ecliptic = equatorial_to_ecliptic(result_equatorial[0], result_equatorial[1]);
+  return result_ecliptic;
+}
+
+    function updateLabels() {
+      var conversion = document.getElementById("conversion").value;
+      var label1 = document.getElementById("label1");
+      var label2 = document.getElementById("label2");
+      var latObsLabel = document.getElementById("lat_obs_label");
+      var lonObsLabel = document.getElementById("lon_obs_label");
+      var timeLabel = document.getElementById("time_label");
+      var latObsInput = document.getElementById("lat_obs");
+      var lonObsInput = document.getElementById("lon_obs");
+      var timeInput = document.getElementById("time");
+
+      if (conversion === "1") {
+        label1.textContent = "Right Ascension:";
+        label2.textContent = "Declination:";
+        hideElements([latObsLabel, lonObsLabel, timeLabel, latObsInput, lonObsInput, timeInput]);
+      } else if (conversion === "2") {
+        label1.textContent = "Galactic Longitude:";
+        label2.textContent = "Galactic Latitude:";
+        hideElements([latObsLabel, lonObsLabel, timeLabel, latObsInput, lonObsInput, timeInput]);
+      } else if (conversion === "3") {
+        label1.textContent = "Right Ascension:";
+        label2.textContent = "Declination:";
+        hideElements([latObsLabel, lonObsLabel, timeLabel, latObsInput, lonObsInput, timeInput]);
+      } else if (conversion === "4") {
+        label1.textContent = "Ecliptic Longitude:";
+        label2.textContent = "Ecliptic Latitude:";
+        hideElements([latObsLabel, lonObsLabel, timeLabel, latObsInput, lonObsInput, timeInput]);
+      } else if (conversion === "5") {
+        label1.textContent = "Galactic Longitude:";
+        label2.textContent = "Galactic Latitude:";
+        hideElements([latObsLabel, lonObsLabel, timeLabel, latObsInput, lonObsInput, timeInput]);
+      } else if (conversion === "6") {
+        label1.textContent = "Ecliptic Longitude:";
+        label2.textContent = "Ecliptic Latitude:";
+        hideElements([latObsLabel, lonObsLabel, timeLabel, latObsInput, lonObsInput, timeInput]);
+      } else if (conversion === "7") {
+        label1.textContent = "Right Ascension:";
+        label2.textContent = "Declination:";
+        showElements([latObsLabel, lonObsLabel, timeLabel, latObsInput, lonObsInput, timeInput]);
+      } else if (conversion === "8") {
+        label1.textContent = "Altitude:";
+        label2.textContent = "Azimuth:";
+        showElements([latObsLabel, lonObsLabel, timeLabel, latObsInput, lonObsInput, timeInput]);
+      } else if (conversion === "9") {
+        label1.textContent = "Altitude:";
+        label2.textContent = "Azimuth:";
+        showElements([latObsLabel, lonObsLabel, timeLabel, latObsInput, lonObsInput, timeInput]);
+      } else if (conversion === "10") {
+        label1.textContent = "Galactic Longitude:";
+        label2.textContent = "Galactic Latitude:";
+        showElements([latObsLabel, lonObsLabel, timeLabel, latObsInput, lonObsInput, timeInput]);
+      } else if (conversion === "11") {
+        label1.textContent = "Ecliptic Longitude:";
+        label2.textContent = "Ecliptic Latitude:";
+        showElements([latObsLabel, lonObsLabel, timeLabel, latObsInput, lonObsInput, timeInput]);
+      } else if (conversion === "12") {
+        label1.textContent = "Altitude:";
+        label2.textContent = "Azimuth:";
+        showElements([latObsLabel, lonObsLabel, timeLabel, latObsInput, lonObsInput, timeInput]);
+      }
+    }
+
+    function hideElements(elements) {
+      elements.forEach(function (element) {
+        element.style.display = "none";
+      });
+    }
+
+    function showElements(elements) {
+      elements.forEach(function (element) {
+        element.style.display = "block";
+      });
+    }
+
+    function convertCoordinates() {
+        var conversion = document.getElementById("conversion").value;
+  var input1 = parseFloat(document.getElementById("input1").value);
+  var input2 = parseFloat(document.getElementById("input2").value);
+
+  var output;
+
+  if (conversion === "1") {
+    var result = equatorial_to_galactic(input1, input2);
+    output = "Galactic (l/b): " + result[0] + ", " + result[1];
+  } else if (conversion === "2") {
+    var result = galactic_to_equatorial(input1, input2);
+    output = "Equatorial (RA/Dec): " + result[0] + ", " + result[1];
+  } else if (conversion === "3") {
+    var result = equatorial_to_ecliptic(input1, input2);
+    output = "Ecliptic (lon/lat): " + result[0] + ", " + result[1];
+  } else if (conversion === "4") {
+    var result = ecliptic_to_equatorial(input1, input2);
+    output = "Equatorial (RA/Dec): " + result[0] + ", " + result[1];
+  } else if (conversion === "5") {
+    var result = galactic_to_ecliptic(input1, input2);
+    output = "Ecliptic (lon/lat): " + result[0] + ", " + result[1];
+  } else if (conversion === "6") {
+    var result = ecliptic_to_galactic(input1, input2);
+    output = "Galactic (l/b): " + result[0] + ", " + result[1];
+  } else if (conversion === "7") {
+    var lat_obs = parseFloat(document.getElementById("lat_obs").value);
+    var lon_obs = parseFloat(document.getElementById("lon_obs").value);
+    var time = parseFloat(document.getElementById("time").value);
+    var result = equatorial_to_horizontal(input1, input2, lat_obs, lon_obs, time);
+    output = "Horizontal (alt/az): " + result[0] + ", " + result[1];
+  } else if (conversion === "8") {
+    var lat_obs = parseFloat(document.getElementById("lat_obs").value);
+    var lon_obs = parseFloat(document.getElementById("lon_obs").value);
+    var time = parseFloat(document.getElementById("time").value);
+    var result = horizontal_to_equatorial(input1, input2, lat_obs, lon_obs, time);
+    output = "Equatorial (RA/Dec): " + result[0] + ", " + result[1];
+  } else if (conversion === "9") {
+    var lat_obs = parseFloat(document.getElementById("lat_obs").value);
+    var lon_obs = parseFloat(document.getElementById("lon_obs").value);
+    var time = parseFloat(document.getElementById("time").value);
+    var result = horizontal_to_galactic(input1, input2, lat_obs, lon_obs, time);
+    output = "Galactic (l/b): " + result[0] + ", " + result[1];
+  } else if (conversion === "10") {
+    var lat_obs = parseFloat(document.getElementById("lat_obs").value);
+    var lon_obs = parseFloat(document.getElementById("lon_obs").value);
+    var time = parseFloat(document.getElementById("time").value);
+    var result = galactic_to_horizontal(input1, input2, lat_obs, lon_obs, time);
+    output = "Horizontal (alt/az): " + result[0] + ", " + result[1];
+  } else if (conversion === "11") {
+    var lat_obs = parseFloat(document.getElementById("lat_obs").value);
+    var lon_obs = parseFloat(document.getElementById("lon_obs").value);
+    var time = parseFloat(document.getElementById("time").value);
+    var result = ecliptic_to_horizontal(input1, input2, lat_obs, lon_obs, time);
+    output = "Horizontal (alt/az): " + result[0] + ", " + result[1];
+  } else if (conversion === "12") {
+    var lat_obs = parseFloat(document.getElementById("lat_obs").value);
+    var lon_obs = parseFloat(document.getElementById("lon_obs").value);
+    var time = parseFloat(document.getElementById("time").value);
+    var result = horizontal_to_ecliptic(input1, input2, lat_obs, lon_obs, time);
+    output = "Ecliptic (lon/lat): " + result[0] + ", " + result[1];
+  }
+
+  document.getElementById("output").innerHTML = output;
+}
+
+  </script>
+</head>
+<body>
+  <h1>Celestial Coordinate Converter</h1>
+
+  <label for="conversion">Conversion:</label>
+  <select id="conversion" onchange="updateLabels()">
+    <option value="1">Equatorial to Galactic</option>
+    <option value="2">Galactic to Equatorial</option>
+    <option value="3">Equatorial to Ecliptic</option>
+    <option value="4">Ecliptic to Equatorial</option>
+    <option value="5">Galactic to Ecliptic</option>
+    <option value="6">Ecliptic to Galactic</option>
+    <option value="7">Equatorial to Horizontal</option>
+    <option value="8">Horizontal to Equatorial</option>
+    <option value="9">Horizontal to Galactic</option>
+    <option value="10">Galactic to Horizontal</option>
+    <option value="11">Ecliptic to Horizontal</option>
+    <option value="12">Horizontal to Ecliptic</option>
+  </select>
+
+  <br>
+
+  <label id="label1" for="input1">Right Ascension:</label>
+  <input type="text" id="input1">
+
+  <br>
+
+  <label id="label2" for="input2">Declination:</label>
+  <input type="text" id="input2">
+
+  <br>
+
+  <label id="lat_obs_label" for="lat_obs" style="display: none;">Observer's Latitude:</label>
+  <input type="text" id="lat_obs" style="display: none;">
+
+  <br>
+
+  <label id="lon_obs_label" for="lon_obs" style="display: none;">Observer's Longitude:</label>
+  <input type="text" id="lon_obs" style="display: none;">
+
+  <br>
+
+  <label id="time_label" for="time" style="display: none;">Local Time (in hours):</label>
+  <input type="text" id="time" style="display: none;">
+
+  <br>
+
+  <button onclick="convertCoordinates()">Convert</button>
+
+  <br>
+
+  <p id="output"></p>
+
+  <footer>
+    <p>Developed by Ayush Bansal</p>
+  </footer>
+</body>
+</html>
